@@ -1,0 +1,38 @@
+name: Habous Scraper Bot
+
+on:
+  schedule:
+    - cron: '0 */12 * * *' # يعمل تلقائياً كل 12 ساعة
+  workflow_dispatch: # زر للتشغيل اليدوي متى شئت
+
+jobs:
+  run-and-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # إذن ضروري للسماح للسكريبت بتحديث ملف الإعلانات لتجنب التكرار
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run Scraper Script
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python habous_bot.py
+
+      - name: Commit and Push seen ads
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "action@github.com"
+          git add seen_habous_ads.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "تحديث تلقائي: حفظ الإعلانات المرسلة لتجنب التكرار" && git push)
+          
